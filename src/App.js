@@ -8,11 +8,10 @@ const WEATHER_API_KEY = "dfceb610a4345e0b76e9e7c8485c612f";
 
 class App extends React.Component {
   state = {
-    temperature: undefined,
+    data: undefined,
+    days: undefined,
     city: undefined,
     country: undefined,
-    humidity: undefined,
-    description: undefined,
     error: undefined
   }
   
@@ -21,30 +20,48 @@ class App extends React.Component {
     const city = e.target.elements.city.value;
     const country = e.target.elements.country.value;
     const api_call = await fetch(`http://api.openweathermap.org/data/2.5/weather?q=${city},${country}&appid=${WEATHER_API_KEY}&units=metric`);
-    const data = await api_call.json();
+    const api_call2 = await fetch(`http://api.openweathermap.org/data/2.5/forecast?q=${city},${country}&appid=${WEATHER_API_KEY}&units=metric`);
+    const api_data = await api_call2.json();
 
-    if(city && country){
-      console.log(data);
+    if(api_data.cod !== "404"){
+      console.log(api_data);
 
       this.setState({
-        temperature: data.main.temp,
-        city: data.name,
-        country: data.sys.country,
-        humidity: data.main.humidity,
-        description: data.weather[0].description,
+        data: api_data,
+        city: api_data.city.name,
+        country: api_data.city.country,
         error: ""
       });
+
+      this.interpretData();
+
     } else {
       this.setState({
-        temperature: undefined,
+        data: undefined,
         city: undefined,
         country: undefined,
-        humidity: undefined,
-        description: undefined,
-        error: "Please give a valid city and country"
+        error: "Please give a valid city and country",
+        days: undefined
       });
     }
   }
+
+  interpretData(){
+    const data_forecast = this.state.data; 
+    const new_data = Array(5).fill(null);
+
+    for(let i = 0; i < 5; i++){
+        let new_periods = new Array(8).fill(null);
+        for(let y = 0; y < 8; y++){
+            new_periods[y] = data_forecast.list[y + (i * 8)];
+        }
+        new_data[i] = new_periods;
+    }
+
+    this.setState({
+        days: new_data,
+    })
+}
 
   render(){
     return (
@@ -59,11 +76,9 @@ class App extends React.Component {
                 <div className="col-xs-7 form-container">
                   <Form getWeather={this.getWeather} />
                   <Weather 
-                    temperature={this.state.temperature} 
-                    humidity={this.state.humidity}
-                    city={this.state.city}
+                    days={this.state.days}
+                    city={this.state.city} 
                     country={this.state.country}
-                    description={this.state.description}
                     error={this.state.error}
                   />
                 </div>
